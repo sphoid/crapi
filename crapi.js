@@ -3,6 +3,11 @@ var Client = require('node-rest-client').Client;
 var CRAPI = function( apikey ){
 	this.apikey = apikey;
 	this.client = new Client();
+	this.rateLimits = {
+		total: 0,
+		remaining: 0,
+		reset: null
+	};
 }
 
 CRAPI.prototype.api = function( endpoint, args, callback ){
@@ -11,28 +16,35 @@ CRAPI.prototype.api = function( endpoint, args, callback ){
 
 	if ( ! args.hasOwnProperty('headers') ){
 		args.headers = {};
-	}	
+	}
 
 	if ( this.apikey ){
 		args.headers['X-API-KEY'] = this.apikey;
 	}
 
 	return this.client.get(url, args, function( data, response ){
-		callback(data);	
-	});
+		var headers = response.headers;
+		this.rateLimits.total = headers['x-ratelimit-limit'];
+		this.rateLimits.remaining = headers['x-ratelimit-remaining'];
+		this.rateLimits.reset = parseInt(headers['x-ratelimit-reset']);
+		var now = Math.floor(Date.now() / 1000);
+		console.log(this.rateLimits);
+		console.log("Rate Limit resets in " + (this.rateLimits.reset - now) + " seconds")
+		callback(data);
+	}.bind(this));
 
 }
 
 CRAPI.prototype.appendParam = function( url, key, value ){
 
 	var kvp = url.search.substr(1).split('&');
-	var i = kvp.length; 
-	var x; 
+	var i = kvp.length;
+	var x;
 
 	if ( -1 == url.search('?') && 0 == kvp.length ){
 		url += '?';
 	}
-	
+
 	while( i-- ){
 		x = kvp[i].split('=');
 		if (x[0]==key) {
@@ -59,7 +71,7 @@ CRAPI.prototype.parseParams = function( endpoint, args, supportedParams ){
 	if ( args && supportedParams ){
 
 		for ( key in supportedParams ){
-		
+
 			if ( args.hasOwnProperty(key) ){
 				endpoint = this.appendParams(endpoint, key, '${' + key + '}');
 				params[key] = args[key];
@@ -70,7 +82,7 @@ CRAPI.prototype.parseParams = function( endpoint, args, supportedParams ){
 	}
 
 	return {
-		endpoint: endpoint, 
+		endpoint: endpoint,
 		parameters: params
 	};
 
@@ -81,7 +93,7 @@ CRAPI.prototype.getStrains = function( args, callback ){
 	var req = this.parseParams('/strains', args, ['page','sort']);
 
 	return this.api(
-		req.endpoint, 
+		req.endpoint,
 		{
 			parameters: req.parameters
 		},
@@ -114,7 +126,7 @@ CRAPI.prototype.getStrainByUCPC = function( ucpc, args, callback ){
 	var path = {
 		'ucpc': ucpc
 	};
-	
+
 	return this.api(
 		endpoint,
 		{
@@ -155,7 +167,7 @@ CRAPI.prototype.getFlowers = function( args, callback ){
 		{
 			parameters: req.parameters
 		},
-		callback															
+		callback
 	);
 
 }
@@ -223,7 +235,7 @@ CRAPI.prototype.getExtractsByType = function( extractType, args, callback ){
 }
 
 CRAPI.prototype.getExtractByUCPC = function( ucpc, args, callback ){
-	
+
 	var endpoint = '/extracts/${ucpc}';
 	var path = {
 		'ucpc':ucpc
@@ -283,7 +295,7 @@ CRAPI.prototype.getEdibleByUCPC = function( ucpc, args, callback ){
 		{
 			path: path
 		},
-		callback	
+		callback
 	);
 
 }
@@ -324,7 +336,7 @@ CRAPI.prototype.getProductByUCPC = function( ucpc, args, callback ){
 	var endpoint = '/products/${ucpc}';
 	var path = {
 		'ucpc': ucpc
-	};	
+	};
 
 	return this.api(
 		endpoint,
