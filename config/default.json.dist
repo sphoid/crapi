@@ -1,0 +1,11 @@
+{
+	"couchdb": {
+		"host": "127.0.0.1",
+		"port": 5984,
+		"user": "<-- ADMIN USER GOES HERE -->",
+		"password": "<-- ADMIN PASSWORD GOES HERE -->"
+	},
+	"cannabisreports": {
+		"apikey": "<-- APIKEY GOES HERE -->"
+	}
+}

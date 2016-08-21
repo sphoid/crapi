@@ -22,43 +22,27 @@ CRAPI.prototype.api = function( endpoint, args, callback ){
 		args.headers['X-API-KEY'] = this.apikey;
 	}
 
+	console.log("API url=" + url + " args=", args);
+
 	return this.client.get(url, args, function( data, response ){
 		var headers = response.headers;
 		this.rateLimits.total = headers['x-ratelimit-limit'];
 		this.rateLimits.remaining = headers['x-ratelimit-remaining'];
 		this.rateLimits.reset = parseInt(headers['x-ratelimit-reset']);
 		var now = Math.floor(Date.now() / 1000);
-		console.log(this.rateLimits);
-		console.log("Rate Limit resets in " + (this.rateLimits.reset - now) + " seconds")
-		callback(data);
-	}.bind(this));
+		// console.log(this.rateLimits);
+		console.log("Rate Limit "+this.rateLimits.remaining+"/"+this.rateLimits.total+" resets in " + (this.rateLimits.reset - now) + " seconds")
+		callback(null, data);
+	}.bind(this))
+	.on('error', function(error) {
+		callback(error, null);
+	});
 
 }
 
 CRAPI.prototype.appendParam = function( url, key, value ){
 
-	var kvp = url.search.substr(1).split('&');
-	var i = kvp.length;
-	var x;
-
-	if ( -1 == url.search('?') && 0 == kvp.length ){
-		url += '?';
-	}
-
-	while( i-- ){
-		x = kvp[i].split('=');
-		if (x[0]==key) {
-			x[1] = value;
-			kvp[i] = x.join('=');
-			break;
-		}
-	}
-
-	if ( i < 0 ) {
-		kvp[kvp.length] = [key,value].join('=');
-	}
-
-	url = kvp.join('&');
+	url += (url.split('?')[1] ? '&':'?') + key + '=' + value;
 
 	return url;
 
@@ -70,16 +54,20 @@ CRAPI.prototype.parseParams = function( endpoint, args, supportedParams ){
 
 	if ( args && supportedParams ){
 
-		for ( key in supportedParams ){
+		supportedParams.forEach(function(key){
 
 			if ( args.hasOwnProperty(key) ){
-				endpoint = this.appendParams(endpoint, key, '${' + key + '}');
+
+				endpoint = this.appendParam(endpoint, key, args[key]);
 				params[key] = args[key];
+
 			}
 
-		}
+		}.bind(this));
 
 	}
+
+	console.log("Final endpoint ", endpoint);
 
 	return {
 		endpoint: endpoint,

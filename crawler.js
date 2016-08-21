@@ -1,26 +1,71 @@
-var async = require('async');
+// var async = require('async');
 var Crawler = function( crapi, cdb ){
 	this.crapi = crapi;
 	this.cdb = cdb;
 }
 
-Crawler.prototype.processStrains = function( strains ){
+ProcessException = function( message ){
+	this.message = message;
+}
 
-	strains.forEach(function( strain ){
-		// console.log("Parsing strain:", strain);
+ProcessException.prototype.getMessage = function(){
+	return this.message;
+}
 
-		this.cdb.insert(strain, function(error, body){
-			if ( error ){
-				console.log("Error: ", error);
-			} else {
-				console.log("Inserted strain: ", strain);
-			}
-		});
-	}.bind(this));
+Crawler.prototype.processStrain = function( strain, callback ){
+
+	this.cdb.insert(strain, function(error, body){
+		if ( error ){
+			callback(error);
+		} else {
+			console.log("Inserted strain: " + strain.name);
+			callback(null);
+		}
+	});
 
 }
 
-Crawler.prototype.getStrains = function( page ){
+Crawler.prototype.processStrains = function( strains, callback ){
+
+	try {
+
+		strains.forEach(function( strain ){
+
+			this.processStrain(strain, function(error){
+				if ( error ){
+					throw new ProcessException(error);
+				}
+			});
+
+		}.bind(this));
+
+	} catch ( x ){
+
+		callback("Error: ", x.getMessage());
+
+	}
+
+	callback(null);
+
+}
+
+Crawler.prototype.getStrains = function( page, callback ){
+
+	console.log("Getting strains page=" + page);
+
+	this.crapi.getStrains({page: page, sort: 'name'}, function( error, response ){
+
+		if ( error ){
+			callback(error);
+		} else {
+
+			this.processStrains(response.data, function(error){
+				callback(error, response);
+			});
+
+		}
+
+	}.bind(this));
 
 };
 
@@ -28,37 +73,36 @@ Crawler.prototype.getAllStrains = function(){
 
 	console.log("Collecting strains data");
 
-	var request = this.crapi.getStrains(null, function( response ){
+	var recursiveCallback = function( error, response ){
 
 		var total_pages, current_page, next;
 
-		if ( response.meta && response.meta.pagination ){
-			total_pages = response.meta.pagination.total_pages;
-			current_page = response.meta.pagination.current_page;
-			next = response.meta.pagination.links.next;
-		} else {
-			console.log("Something went wrong. Could not parse pagination meta");
+		if ( error ){
+			console.log("Error occured: ", error);
 			return;
 		}
 
-		if ( response.data ){
-			this.processStrains(response.data);
-		} else {
-			console.log("Something went wrong. Could not parse data");
+		if ( response.meta && response.meta.pagination ){
+
+			console.log("Response meta: ", response.meta);
+
+			total_pages = response.meta.pagination.total_pages;
+			current_page = response.meta.pagination.current_page;
 		}
 
 		if ( current_page < total_pages ){
 
-			var pages = Array.apply(null, Array(total_pages)).map(function (_, i) {return i;});
+			next_page = current_page + 1;
 
-			console.log(pages);
+			setTimeout(function(){
+				this.getStrains(next_page, recursiveCallback);
+			}.bind(this), 10000);
 
-			// console.log("Next endpoint: " + next);
-		} else {
-			console.log("Finished");
 		}
 
-	}.bind(this));
+	}.bind(this);
+
+	this.getStrains(1, recursiveCallback);
 
 }
 

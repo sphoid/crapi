@@ -5,6 +5,7 @@ var CRAPI = require('./crapi.js');
 var Crawler = require('./crawler.js');
 
 var cdbConfig = Config.get('couchdb');
+var crConfig = Config.get('cannabisreports');
 var argv = require('minimist')(process.argv.slice(2));
 
 console.log("Arguments: ", argv);
@@ -75,11 +76,13 @@ function reinstall(nano){
 
 function reindex(){
 
+	console.log("Reindexing");
+
 	var nano = require('nano')({
 		'url': 'http://' + cdbConfig.host + ':' + cdbConfig.port
 	});
 
-	var crapi = new CRAPI();
+	var crapi = new CRAPI(crConfig.apikey);
 	var crawler = new Crawler(crapi, nano.use(DB_NAME));
 
 	// crapi.getStrains(null, function(data){
@@ -87,7 +90,7 @@ function reindex(){
 	// });
 
 
-	crawler.getStrains();
+	crawler.getAllStrains();
 }
 
 if ( argv._.length > 0 ){
