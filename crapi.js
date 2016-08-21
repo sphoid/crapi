@@ -372,7 +372,7 @@ CRAPI.prototype.getDispensaries = function( args, callback ){
 	var req = this.parseParams('/dispensaries', args, ['page', 'sort']);
 
 	return this.api(
-		req.endpoing,
+		req.endpoint,
 		{
 			parameters: req.parameters
 		},

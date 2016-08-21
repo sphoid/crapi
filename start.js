@@ -74,7 +74,7 @@ function reinstall(nano){
 
 }
 
-function reindex(){
+function reindex( model ){
 
 	console.log("Reindexing");
 
@@ -89,8 +89,23 @@ function reindex(){
 	// 	console.log("Done");
 	// });
 
-
-	crawler.getAllStrains();
+	if ( 'strains' == model ){
+		crawler.getAllStrains();
+	} else if ( 'flowers' == model ){
+		crawler.getAllFlowers();
+	} else if ( 'extracts' == model ){
+		crawler.getAllExtracts();
+	} else if ( 'edibles' == model ){
+		crawler.getAllEdibles();
+	} else if ( 'products' == model ){
+		crawler.getAllProducts();
+	} else if ( 'producers' == model ){
+		crawler.getAllProducers();
+	} else if ( 'dispensaries' == model ){
+		crawler.getAllDispensaries();
+	} else {
+		console.log("Unrecognized or missing model");
+	}
 }
 
 if ( argv._.length > 0 ){
@@ -104,7 +119,14 @@ if ( argv._.length > 0 ){
 		authenticate( reinstall, function(){ process.exit(); } );
 
 	} else if ( 'reindex' == command ){
-		reindex();
+
+		var model;
+
+		if ( argv._[1]){
+			model = argv._[1];
+		}
+
+		reindex(model);
 	}
 
 }
