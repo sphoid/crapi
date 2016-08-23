@@ -4,13 +4,39 @@ var Crawler = function( crapi, cdb ){
 	this.cdb = cdb;
 }
 
-// var ProcessException = function( message ){
-// 	this.message = message;
-// }
 
-// ProcessException.prototype.getMessage = function(){
-// 	return this.message;
-// }
+Crawler.prototype.installViews = function(){
+
+	this.cdb.insert(
+		{
+			views: {
+				by_state: {
+					map: function( doc ){
+						if ( 'dispensary' == doc.type ){
+							emit(doc.state, doc.slug);
+						}
+					}
+				},
+				by_city_state: {
+					map: function( doc ){
+						if ( 'dispensary' == doc.type ){
+							emit([doc.city,doc.state], doc.slug);
+						}
+					}
+				}
+			}
+		},
+		'_design/dispensaries',
+		function( error, response ){
+			if ( error ){
+				console.log("Error: ", error);
+			} else {
+				console.log("Response: ", response);
+			}
+		}
+	);
+
+}
 
 Crawler.prototype.processItem = function( item, callback ){
 
@@ -25,11 +51,13 @@ Crawler.prototype.processItem = function( item, callback ){
 
 }
 
-Crawler.prototype.processItems = function( items, callback ){
+Crawler.prototype.processItems = function( type, items, callback ){
 
 	try {
 
 		items.forEach(function( item ){
+
+			item.type = type;
 
 			this.processItem(item, function(error){
 				if ( error ){
@@ -64,7 +92,7 @@ Crawler.prototype.getStrains = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('strain', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -122,7 +150,7 @@ Crawler.prototype.getFlowers = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('flower', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -181,7 +209,7 @@ Crawler.prototype.getExtracts = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('extract', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -239,7 +267,7 @@ Crawler.prototype.getEdibles = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('edible', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -297,7 +325,7 @@ Crawler.prototype.getProducts = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('product', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -355,7 +383,7 @@ Crawler.prototype.getProducers = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('producer', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -413,7 +441,7 @@ Crawler.prototype.getDispensaries = function( page, callback ){
 			callback(error);
 		} else {
 
-			this.processItems(response.data, function(error){
+			this.processItems('dispensary', response.data, function(error){
 				callback(error, response);
 			});
 
@@ -459,6 +487,5 @@ Crawler.prototype.getAllDispensaries = function(){
 	this.getDispensaries(1, recursiveCallback);
 
 }
-
 
 module.exports = Crawler;

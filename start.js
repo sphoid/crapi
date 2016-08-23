@@ -58,6 +58,17 @@ function install(nano){
 
 }
 
+function install_views(nano){
+
+	console.log("Installing views");
+
+	var crapi = new CRAPI(crConfig.apikey);
+	var crawler = new Crawler(crapi, nano.use(DB_NAME));
+
+	crawler.installViews();
+
+}
+
 function reinstall(nano){
 
 	console.log("Deleting database");
@@ -85,10 +96,6 @@ function reindex( model ){
 	var crapi = new CRAPI(crConfig.apikey);
 	var crawler = new Crawler(crapi, nano.use(DB_NAME));
 
-	// crapi.getStrains(null, function(data){
-	// 	console.log("Done");
-	// });
-
 	if ( 'strains' == model ){
 		crawler.getAllStrains();
 	} else if ( 'flowers' == model ){
@@ -114,10 +121,10 @@ if ( argv._.length > 0 ){
 
 	if ( 'install' == command ){
 		authenticate( install, function(){ process.exit(); });
-
 	} else if ( 'reinstall' == command ){
 		authenticate( reinstall, function(){ process.exit(); } );
-
+	} else if ( 'install_views' == command ){
+		authenticate( install_views, function(){ process.exit(); } );
 	} else if ( 'reindex' == command ){
 
 		var model;
